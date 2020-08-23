@@ -1,10 +1,10 @@
 {
   "id": "abffecdf-7bf2-4321-ab3f-6ee7fc3b9921",
-  "name": "SharePoint-Integration",
-  "publisher": "Default publisher",
+  "name": "Universal OAuth 2.0 Authorization",
+  "publisher": "MSN Raju",
   "version": "1.0.0.0",
   "brief": "",
-  "description": "",
+  "description": "Universal OAuth 2.0 Authorization Library",
   "privacyStatement": "",
   "EULA": "",
   "help": "",

@@ -2,15 +2,98 @@ codeunit 50100 "OAuth 2.0 Authorization"
 {
     Access = Internal;
 
-    procedure AcquireTokenByRefreshToken(
-        TokenEndpointURL: Text;
-        ClientId: Text;
-        ClientSecret: Text;
-        RedirectURL: Text;
-        RefreshToken: Text;
-        JAccessToken: JsonObject): Boolean
     var
         DotNetUriBuilder: Codeunit DotNet_Uri;
+
+    procedure AcquireAuthorizationToken(
+        GrantType: Enum "Auth. Grant Type";
+        UserName: Text;
+        Password: Text;
+        ClientId: Text;
+        ClientSecret: Text;
+        AuthorizationURL: Text;
+        AccessTokenURL: Text;
+        RedirectURL: Text;
+        AuthURLParms: Text;
+        Scope: Text;
+        JAccessToken: JsonObject): Boolean
+    var
+        AuthRequestURL: Text;
+        AuthCode: Text;
+        State: Text;
+        IsSuccess: Boolean;
+    begin
+        if GrantType = GrantType::"Authorization Code" then begin
+            AuthCode := AcquireAuthorizationCode(
+                ClientId,
+                ClientSecret,
+                AuthorizationURL,
+                RedirectURL,
+                AuthURLParms,
+                Scope);
+
+            if AuthCode = '' then
+                exit;
+        end;
+
+        exit(
+            AcquireToken(
+                GrantType,
+                AuthCode,
+                UserName,
+                Password,
+                ClientId,
+                ClientSecret,
+                Scope,
+                RedirectURL,
+                AccessTokenURL,
+                JAccessToken));
+    end;
+
+    local procedure AcquireAuthorizationCode(
+        ClientId: Text;
+        ClientSecret: Text;
+        AuthorizationURL: Text;
+        RedirectURL: Text;
+        AuthURLParms: Text;
+        Scope: Text): Text
+    var
+        OAuth20ConsentDialog: Page "OAuth 2.0 Consent Dialog";
+        State: Text;
+        AuthRequestURL: Text;
+    begin
+        State := Format(CreateGuid(), 0, 4);
+
+        AuthRequestURL := GetAuthRequestURL(
+            ClientId,
+            ClientSecret,
+            AuthorizationURL,
+            RedirectURL,
+            State,
+            Scope,
+            AuthURLParms);
+
+        if AuthRequestURL = '' then
+            exit;
+
+        OAuth20ConsentDialog.SetOAuth2CodeFlowGrantProperties(AuthRequestURL, State);
+        OAuth20ConsentDialog.RunModal();
+
+        exit(OAuth20ConsentDialog.GetAuthCode());
+    end;
+
+    local procedure AcquireToken(
+        GrantType: Enum "Auth. Grant Type";
+        AuthorizationCode: Text;
+        UserName: Text;
+        Password: Text;
+        ClientId: Text;
+        ClientSecret: Text;
+        Scope: Text;
+        RedirectURL: Text;
+        TokenEndpointURL: Text;
+        JAccessToken: JsonObject): Boolean;
+    var
         Client: HttpClient;
         Request: HttpRequestMessage;
         Response: HttpResponseMessage;
@@ -20,11 +103,26 @@ codeunit 50100 "OAuth 2.0 Authorization"
         ResponseText: Text;
         IsSuccess: Boolean;
     begin
-        ContentText := 'grant_type=refresh_token' +
-            '&refresh_token=' + DotNetUriBuilder.EscapeDataString(RefreshToken) +
-            '&redirect_uri=' + DotNetUriBuilder.EscapeDataString(RedirectURL) +
-            '&client_id=' + DotNetUriBuilder.EscapeDataString(ClientId) +
-            '&client_secret=' + DotNetUriBuilder.EscapeDataString(ClientSecret);
+        case GrantType of
+            GrantType::"Authorization Code":
+                ContentText := 'grant_type=authorization_code' +
+                    '&code=' + AuthorizationCode +
+                    '&redirect_uri=' + DotNetUriBuilder.EscapeDataString(RedirectURL) +
+                    '&client_id=' + DotNetUriBuilder.EscapeDataString(ClientId) +
+                    '&client_secret=' + DotNetUriBuilder.EscapeDataString(ClientSecret);
+            GrantType::"Password Credentials":
+                ContentText := 'grant_type=password' +
+                    '&username=' + DotNetUriBuilder.EscapeDataString(UserName) +
+                    '&password=' + DotNetUriBuilder.EscapeDataString(Password) +
+                    '&client_id=' + DotNetUriBuilder.EscapeDataString(ClientId) +
+                    '&client_secret=' + DotNetUriBuilder.EscapeDataString(ClientSecret) +
+                    '&scope=' + DotNetUriBuilder.EscapeDataString(Scope);
+            GrantType::"Client Credentials":
+                ContentText := 'grant_type=client_credentials' +
+                    '&client_id=' + DotNetUriBuilder.EscapeDataString(ClientId) +
+                    '&client_secret=' + DotNetUriBuilder.EscapeDataString(ClientSecret) +
+                    '&scope=' + DotNetUriBuilder.EscapeDataString(Scope);
+        end;
         Content.WriteFrom(ContentText);
 
         Content.GetHeaders(ContentHeaders);
@@ -46,62 +144,15 @@ codeunit 50100 "OAuth 2.0 Authorization"
         exit(IsSuccess);
     end;
 
-    [TryFunction]
-    procedure AcquireTokenByAuthorizationCode(
-        ClientId: Text;
-        ClientSecret: Text;
-        AuthorizationURL: Text;
-        AccessTokenURL: Text;
-        RedirectURL: Text;
-        ResourceURL: Text;
-        Scope: Text;
-        PromptInteraction: Enum "Prompt Interaction";
-        var IsSuccess: Boolean;
-        JAccessToken: JsonObject)
-    var
-        OAuth20ConsentDialog: Page "OAuth 2.0 Consent Dialog";
-        AuthRequestURL: Text;
-        AuthCode: Text;
-        State: Text;
-    begin
-        State := Format(CreateGuid(), 0, 4);
 
-        AuthRequestURL := GetAuthRequestURL(
-            ClientId,
-            ClientSecret,
-            AuthorizationURL,
-            RedirectURL,
-            State,
-            Scope,
-            ResourceURL,
-            PromptInteraction);
-
-        if AuthRequestURL = '' then
-            exit;
-
-        OAuth20ConsentDialog.SetOAuth2CodeFlowGrantProperties(AuthRequestURL, State);
-        OAuth20ConsentDialog.RunModal();
-
-        AuthCode := OAuth20ConsentDialog.GetAuthCode();
-        if AuthCode <> '' then
-            IsSuccess := AcquireTokenByAuthorizationCodeWithCredentials(
-                AuthCode,
-                ClientId,
-                ClientSecret,
-                RedirectURL,
-                AccessTokenURL,
-                JAccessToken);
-    end;
-
-    local procedure AcquireTokenByAuthorizationCodeWithCredentials(
-        AuthorizationCode: Text;
-        ClientId: Text;
-        ClientSecret: Text;
-        RedirectURL: Text;
+    procedure AcquireTokenByRefreshToken(
         TokenEndpointURL: Text;
-        JAccessToken: JsonObject): Boolean;
+        ClientId: Text;
+        ClientSecret: Text;
+        RedirectURL: Text;
+        RefreshToken: Text;
+        JAccessToken: JsonObject): Boolean
     var
-        DotNetUriBuilder: Codeunit DotNet_Uri;
         Client: HttpClient;
         Request: HttpRequestMessage;
         Response: HttpResponseMessage;
@@ -111,8 +162,8 @@ codeunit 50100 "OAuth 2.0 Authorization"
         ResponseText: Text;
         IsSuccess: Boolean;
     begin
-        ContentText := 'grant_type=authorization_code' +
-            '&code=' + DotNetUriBuilder.EscapeDataString(AuthorizationCode) +
+        ContentText := 'grant_type=refresh_token' +
+            '&refresh_token=' + DotNetUriBuilder.EscapeDataString(RefreshToken) +
             '&redirect_uri=' + DotNetUriBuilder.EscapeDataString(RedirectURL) +
             '&client_id=' + DotNetUriBuilder.EscapeDataString(ClientId) +
             '&client_secret=' + DotNetUriBuilder.EscapeDataString(ClientSecret);
@@ -155,32 +206,20 @@ codeunit 50100 "OAuth 2.0 Authorization"
         RedirectURL: Text;
         State: Text;
         Scope: Text;
-        ResourceURL: Text;
-        PromptConsent: Enum "Prompt Interaction"): Text
+        AuthURLParms: Text): Text
     begin
         if (ClientId = '') or (RedirectURL = '') or (state = '') then
             exit('');
 
         AuthRequestURL := AuthRequestURL + '?' +
-            'client_id=' + ClientId +
-            '&redirect_uri=' + RedirectURL +
-            '&state=' + State +
-            '&scope=' + Scope +
+            'client_id=' + DotNetUriBuilder.EscapeDataString(ClientId) +
+            '&redirect_uri=' + DotNetUriBuilder.EscapeDataString(RedirectURL) +
+            '&state=' + DotNetUriBuilder.EscapeDataString(State) +
+            '&scope=' + DotNetUriBuilder.EscapeDataString(Scope) +
             '&response_type=code';
 
-        case PromptConsent of
-            PromptConsent::Login:
-                AuthRequestURL := AuthRequestURL + '&prompt=login';
-            PromptConsent::"Select Account":
-                AuthRequestURL := AuthRequestURL + '&prompt=select_account';
-            PromptConsent::Consent:
-                AuthRequestURL := AuthRequestURL + '&prompt=consent';
-            PromptConsent::"Admin Consent":
-                AuthRequestURL := AuthRequestURL + '&prompt=admin_consent';
-        end;
-
-        if ResourceURL <> '' then
-            AuthRequestURL := AuthRequestURL + '&resource=' + ResourceURL;
+        if AuthURLParms <> '' then
+            AuthRequestURL := AuthRequestURL + '&' + AuthURLParms;
 
         exit(AuthRequestURL);
     end;

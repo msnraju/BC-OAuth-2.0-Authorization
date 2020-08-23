@@ -24,18 +24,25 @@ page 50101 "OAuth 2.0 Application"
                 }
                 field("Client ID"; "Client ID")
                 {
+                    Caption = 'Application / Client ID';
                     ApplicationArea = Basic, Suite;
-                    ToolTip = 'Specifies the client ID.';
+                    ToolTip = 'Specifies the client id.';
                 }
                 field("Client Secret"; "Client Secret")
                 {
                     ApplicationArea = Basic, Suite;
-                    ToolTip = 'Specifies the client Secret.';
+                    ExtendedDataType = Masked;
+                    ToolTip = 'Specifies the client secret.';
+                }
+                field("Grant Type"; "Grant Type")
+                {
+                    ApplicationArea = Basic, Suite;
+                    ToolTip = 'Specifies the grant type.';
                 }
                 field("Redirect URL"; "Redirect URL")
                 {
                     ApplicationArea = Basic, Suite;
-                    ToolTip = 'Specifies the redirect URL.';
+                    ToolTip = 'Specifies the redirect url.';
                 }
                 field(Scope; Scope)
                 {
@@ -43,19 +50,42 @@ page 50101 "OAuth 2.0 Application"
                     ToolTip = 'Specifies the scope.';
                 }
             }
-            group("Request URL Paths")
+            group("Password Credentials")
             {
-                Caption = 'Request URL Paths';
+                Caption = 'Password Credentials';
+                Visible = "Grant Type" = "Grant Type"::"Password Credentials";
 
-                field("Authorization URL Path"; "Authorization URL")
+                field("User Name"; "User Name")
                 {
+                    Caption = 'User Name';
                     ApplicationArea = Basic, Suite;
-                    ToolTip = 'Specifies the authorization URL path.';
+                    ToolTip = 'Specifies the user name.';
                 }
-                field("Access Token URL Path"; "Access Token URL")
+                field("Password"; "Password")
                 {
                     ApplicationArea = Basic, Suite;
-                    ToolTip = 'Specifies the access token URL path.';
+                    ExtendedDataType = Masked;
+                    ToolTip = 'Specifies the password.';
+                }
+            }
+            group("Endpoints")
+            {
+                Caption = 'Endpoints';
+
+                field("Authorization URL"; "Authorization URL")
+                {
+                    ApplicationArea = Basic, Suite;
+                    ToolTip = 'Specifies the authorization url.';
+                }
+                field("Access Token URL"; "Access Token URL")
+                {
+                    ApplicationArea = Basic, Suite;
+                    ToolTip = 'Specifies the access token url.';
+                }
+                field("Auth. URL Parms"; "Auth. URL Parms")
+                {
+                    ApplicationArea = Basic, Suite;
+                    ToolTip = 'Specifies the resource url.';
                 }
             }
         }
@@ -65,10 +95,10 @@ page 50101 "OAuth 2.0 Application"
     {
         area(processing)
         {
-            action(RequestAuthorizationCode)
+            action(RequestAccessToken)
             {
                 ApplicationArea = Basic, Suite;
-                Caption = 'Request Authorization Code';
+                Caption = 'Request Access Token';
                 Image = EncryptionKeys;
                 Promoted = true;
                 PromotedCategory = Process;
@@ -77,10 +107,9 @@ page 50101 "OAuth 2.0 Application"
 
                 trigger OnAction()
                 var
-                    OAuth20Application: Codeunit "OAuth 2.0 Application";
                     MessageTxt: Text;
                 begin
-                    if not OAuth20Application.RequestAuthorizationCode(Rec, MessageTxt) then begin
+                    if not OAuth20AppHelper.RequestAccessToken(Rec, MessageTxt) then begin
                         Commit(); // save new "Status" value
                         Error(MessageTxt);
                     end else
@@ -99,10 +128,12 @@ page 50101 "OAuth 2.0 Application"
 
                 trigger OnAction()
                 var
-                    OAuth20Application: Codeunit "OAuth 2.0 Application";
                     MessageText: Text;
                 begin
-                    if not OAuth20Application.RefreshAccessToken(Rec, MessageText) then begin
+                    if OAuth20AppHelper.GetRefreshToken(Rec) = '' then
+                        Error(NoRefreshTokenErr);
+
+                    if not OAuth20AppHelper.RefreshAccessToken(Rec, MessageText) then begin
                         Commit(); // save new "Status" value
                         Error(MessageText);
                     end else
@@ -110,26 +141,11 @@ page 50101 "OAuth 2.0 Application"
                 end;
             }
         }
-        area(navigation)
-        {
-            action(HttpLog)
-            {
-                ApplicationArea = Basic, Suite;
-                Caption = 'Http Log';
-                Image = Log;
-                ToolTip = 'See the http request/response history log entries for the current OAuth endpoint setup.';
-
-                trigger OnAction()
-                var
-                    ActivityLog: Record "Activity Log";
-                begin
-                    ActivityLog.ShowEntries(Rec);
-                end;
-            }
-        }
     }
 
     var
-        SuccessfulMsg: Label 'Authorization Token updated successfully.';
+        OAuth20AppHelper: Codeunit "OAuth 2.0 App. Helper";
+        SuccessfulMsg: Label 'Access Token updated successfully.';
+        NoRefreshTokenErr: Label 'No Refresh Token avaiable';
 }
 

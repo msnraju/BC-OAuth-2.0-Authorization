@@ -1,9 +1,9 @@
-codeunit 50101 "OAuth 2.0 Application"
+codeunit 50101 "OAuth 2.0 App. Helper"
 {
     var
         OAuth2Authorization: Codeunit "OAuth 2.0 Authorization";
 
-    procedure RequestAuthorizationCode(var Application: Record "OAuth 2.0 Application"; var MessageTxt: Text): Boolean
+    procedure RequestAccessToken(var Application: Record "OAuth 2.0 Application"; var MessageTxt: Text): Boolean
     var
         IsSuccess: Boolean;
         JAccessToken: JsonObject;
@@ -20,16 +20,17 @@ codeunit 50101 "OAuth 2.0 Application"
         end;
 
         Application."Authorization Time" := CurrentDateTime();
-        OAuth2Authorization.AcquireTokenByAuthorizationCode(
+        IsSuccess := OAuth2Authorization.AcquireAuthorizationToken(
+            Application."Grant Type",
+            Application."User Name",
+            Application.Password,
             Application."Client ID",
             Application."Client Secret",
             Application."Authorization URL",
             Application."Access Token URL",
             Application."Redirect URL",
-            Application."Resource URL",
+            Application."Auth. URL Parms",
             Application.Scope,
-            "Prompt Interaction"::Consent,
-            IsSuccess,
             JAccessToken);
 
         if IsSuccess then begin
@@ -75,15 +76,7 @@ codeunit 50101 "OAuth 2.0 Application"
         exit(IsSuccess);
     end;
 
-    local procedure GetErrorDescription(JAccessToken: JsonObject): Text
-    var
-        JToken: JsonToken;
-    begin
-        if (JAccessToken.Get('error_description', JToken)) then
-            exit(JToken.AsValue().AsText());
-    end;
-
-    local procedure GetAccessToken(var Application: Record "OAuth 2.0 Application"): Text
+    procedure GetAccessToken(var Application: Record "OAuth 2.0 Application"): Text
     var
         IStream: InStream;
         Buffer: TextBuilder;
@@ -101,7 +94,7 @@ codeunit 50101 "OAuth 2.0 Application"
         exit(Buffer.ToText())
     end;
 
-    local procedure GetRefreshToken(var Application: Record "OAuth 2.0 Application"): Text
+    procedure GetRefreshToken(var Application: Record "OAuth 2.0 Application"): Text
     var
         IStream: InStream;
         Buffer: TextBuilder;
@@ -117,6 +110,14 @@ codeunit 50101 "OAuth 2.0 Application"
         end;
 
         exit(Buffer.ToText())
+    end;
+
+    local procedure GetErrorDescription(JAccessToken: JsonObject): Text
+    var
+        JToken: JsonToken;
+    begin
+        if (JAccessToken.Get('error_description', JToken)) then
+            exit(JToken.AsValue().AsText());
     end;
 
     local procedure ReadTokenJson(var Application: Record "OAuth 2.0 Application"; JAccessToken: JsonObject)

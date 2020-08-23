@@ -29,9 +29,9 @@ table 50100 "OAuth 2.0 Application"
         {
             Caption = 'Redirect URL';
         }
-        field(6; "Resource URL"; Text[250])
+        field(6; "Auth. URL Parms"; Text[250])
         {
-            Caption = 'Resource URL';
+            Caption = 'Auth. URL Parms';
         }
         field(7; Scope; Text[250])
         {
@@ -95,6 +95,19 @@ table 50100 "OAuth 2.0 Application"
             Editable = false;
             DataClassification = EndUserIdentifiableInformation;
         }
+        field(16; "Grant Type"; Enum "Auth. Grant Type")
+        {
+            Caption = 'Grant Type';
+            DataClassification = EndUserIdentifiableInformation;
+        }
+        field(17; "User Name"; Text[80])
+        {
+            Caption = 'User Name';
+        }
+        field(18; Password; Text[20])
+        {
+            Caption = 'Password';
+        }
     }
 
     keys
@@ -104,4 +117,14 @@ table 50100 "OAuth 2.0 Application"
             Clustered = true;
         }
     }
+
+    trigger OnModify()
+    begin
+        Status := Status::" ";
+        Clear("Access Token");
+        Clear("Refresh Token");
+        "Expires In" := 0;
+        "Ext. Expires In" := 0;
+        "Authorization Time" := 0DT;
+    end;
 }

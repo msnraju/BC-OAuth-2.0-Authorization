@@ -1,10 +1,10 @@
-# How to use Microsoft Graph API in Business Central
-This repository contains sample code to get list of files and folders from OneDrive using Microsoft Graph API. 
-This repository contains a sample code to get AuthToken using OAuth2.
+# Generic OAuth2 Library for Business Central
 
-## OneDrive folders in a NAV Page
-![OneDrive Explorer](/media/OneDrive-Explorer.png)
+Generic OAuth2 Library for Business Central is to acquire Access Token from Azure AD, Google, Facebook etc. OAuth is most commonly used authorization method across all platforms. Acquiring Access Token is a little difficult in Business Central, though there is a Codeunit called OAuth2 available in the system. To help the Business Central developers' community, I thought of creating this generic library for OAuth2, so that developers can use this in their applications.
 
-To learn how to do this, to know more details goto [www.msnJournals.com](https://www.msnjournals.com/post/how-to-use-microsoft-graph-api-in-business-central)
+## Code in Action
+![OAuth2](/media/oauth2.gif)
+
+To know more details goto [www.msnJournals.com](https://www.msnjournals.com/post/generic-oauth2-library-for-business-central)
 
 
