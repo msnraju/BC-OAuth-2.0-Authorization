@@ -1,7 +1,5 @@
 codeunit 50100 "OAuth 2.0 Authorization"
 {
-    Access = Internal;
-
     var
         DotNetUriBuilder: Codeunit DotNet_Uri;
 
