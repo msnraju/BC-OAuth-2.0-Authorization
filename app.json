@@ -1,15 +1,15 @@
 {
   "id": "abffecdf-7bf2-4321-ab3f-6ee7fc3b9921",
-  "name": "Universal OAuth 2.0 Authorization",
+  "name": "Generic OAuth 2.0 Authorization",
   "publisher": "MSN Raju",
   "version": "1.0.0.0",
   "brief": "",
-  "description": "Universal OAuth 2.0 Authorization Library",
+  "description": "Generic OAuth 2.0 Authorization Library",
   "privacyStatement": "",
-  "EULA": "",
+  "EULA": "https://github.com/msnraju/BC-OAuth-2.0-Authorization/blob/master/LICENSE",
   "help": "",
-  "url": "",
-  "logo": "",
+  "url": "https://www.msnjournals.com/post/generic-oauth2-library-for-business-central",
+  "logo": "media\\msnJournals.png",
   "dependencies": [
     {
       "id": "63ca2fa4-4f03-4f2b-a480-172fef340d3f",
@@ -32,7 +32,7 @@
       "to": 50149
     }
   ],
-  "contextSensitiveHelpUrl": "https://test/help/",
+  "contextSensitiveHelpUrl": "https://www.msnjournals.com/post/generic-oauth2-library-for-business-central",
   "showMyCode": true,
   "runtime": "5.0"
 }
