@@ -139,11 +139,13 @@ codeunit 50101 "OAuth 2.0 App. Helper"
                     Application."Ext. Expires In" := JToken.AsValue().AsInteger();
                 'access_token':
                     begin
+                        clear(Application."Access Token");//Erase old token
                         Application."Access Token".CreateOutStream(OStream, TextEncoding::UTF8);
                         OStream.WriteText(JToken.AsValue().AsText());
                     end;
                 'refresh_token':
                     begin
+                        Clear(Application."Refresh Token");//Erase old token
                         Application."Refresh Token".CreateOutStream(OStream, TextEncoding::UTF8);
                         OStream.WriteText(JToken.AsValue().AsText());
                     end;
